@@ -55,18 +55,21 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   dbt:
-    image: ghcr.io/dbt-labs/dbt-postgres:1.10.latest
+    build:
+      context: .
+      dockerfile: docker/dbt/Dockerfile
     container_name: fintech-wiorx-dbt
     depends_on:
       - postgres
     env_file:
       - .env
+      - dbt/.env
     volumes:
       - ./dbt:/usr/app
     working_dir: /usr/app
-    environment:
-      DBT_PROFILES_DIR: /usr/app/profiles
-    command: tail -f /dev/null
+    stdin_open: true
+    tty: true
+    command: ["sleep", "infinity"]
 
 volumes:
   minio_data:
