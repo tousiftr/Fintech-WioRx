@@ -41,5 +41,33 @@ services:
       - ./data:/app/data
     command: ["python", "main.py"]
 
+  postgres:
+    image: postgres:15
+    container_name: fintech-wiorx-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech123
+      POSTGRES_DB: fintech
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.10.latest
+    container_name: fintech-wiorx-dbt
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    volumes:
+      - ./dbt:/usr/app
+    working_dir: /usr/app
+    environment:
+      DBT_PROFILES_DIR: /usr/app/profiles
+    command: tail -f /dev/null
+
 volumes:
   minio_data:
+  postgres_data:
