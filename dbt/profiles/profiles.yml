@@ -1,0 +1,13 @@
+fintech_wiorx:
+  target: "{{ env_var('DBT_ENV', 'dev') }}"
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PG_HOST') }}"
+      port: "{{ env_var('PG_PORT', '5432') | int }}"
+      dbname: "{{ env_var('PG_DB') }}"
+      schema: "{{ env_var('PG_SCHEMA', 'analytics') }}"
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      threads: "{{ env_var('PG_THREADS', '4') | int }}"
+      sslmode: require

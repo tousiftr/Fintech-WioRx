@@ -41,5 +41,20 @@ services:
       - ./data:/app/data
     command: ["python", "main.py"]
 
+  dbt:
+    build:
+      context: .
+      dockerfile: docker/dbt/Dockerfile
+    container_name: fintech-wiorx-dbt
+    env_file:
+      - .env
+      - dbt/.env
+    volumes:
+      - ./dbt:/usr/app
+    working_dir: /usr/app
+    stdin_open: true
+    tty: true
+    command: ["sleep", "infinity"]
+
 volumes:
   minio_data:
