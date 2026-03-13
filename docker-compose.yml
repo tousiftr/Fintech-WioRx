@@ -1,0 +1,45 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: fintech-wiorx-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - .env
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  mc:
+    image: minio/mc:latest
+    container_name: fintech-wiorx-mc
+    depends_on:
+      - minio
+    env_file:
+      - .env
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+      mc mb --ignore-existing local/$$MINIO_BUCKET;
+      echo Bucket created: $$MINIO_BUCKET;
+      exit 0;
+      "
+
+  generator:
+    build:
+      context: ./generator
+    container_name: fintech-wiorx-generator
+    depends_on:
+      - minio
+      - mc
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    command: ["python", "main.py"]
+
+volumes:
+  minio_data:
