@@ -1,0 +1,24 @@
+cat > dbt/dbt_project.yml <<'EOF'
+name: fintech_wiorx
+version: "1.0"
+config-version: 2
+
+profile: fintech_wiorx
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  fintech_wiorx:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+EOF
