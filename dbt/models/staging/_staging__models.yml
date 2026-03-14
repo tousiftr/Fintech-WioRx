@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: >
+      Staging model for customer (user) data. Cleans and casts raw user records
+      from the source system. Each row represents one registered user.
+    columns:
+      - name: user_id
+        description: Unique identifier for the user (cast from raw integer to string).
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: Lowercased email address of the user.
+        tests:
+          - not_null
+      - name: created_at
+        description: Timestamp when the user account was created.
+      - name: updated_at
+        description: Timestamp when the user record was last updated.
+
+  - name: stg_merchants
+    description: >
+      Staging model for merchant data. Cleans and casts raw merchant records from
+      the source system. Each row represents one merchant.
+    columns:
+      - name: merchant_id
+        description: Unique identifier for the merchant (cast from raw integer to string).
+        tests:
+          - unique
+          - not_null
+      - name: merchant_name
+        description: Display name of the merchant.
+        tests:
+          - not_null
+      - name: merchant_category
+        description: Business category the merchant belongs to (e.g. retail, food, travel).
+      - name: created_at
+        description: Timestamp when the merchant record was created.
+
+  - name: stg_payments
+    description: >
+      Staging model for payment transaction data. Cleans and casts raw payment
+      records. Each row represents one payment transaction.
+    columns:
+      - name: payment_id
+        description: Unique identifier for the payment (cast from raw integer to string).
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Foreign key referencing the user who initiated the payment.
+        tests:
+          - not_null
+      - name: merchant_id
+        description: Foreign key referencing the merchant who received the payment.
+        tests:
+          - not_null
+      - name: amount
+        description: Payment amount as a numeric value.
+        tests:
+          - not_null
+      - name: currency
+        description: ISO 4217 currency code for the payment (e.g. USD, EUR, AED).
+      - name: payment_status
+        description: >
+          Current status of the payment (e.g. pending, completed, failed, refunded).
+      - name: created_at
+        description: Timestamp when the payment was initiated.
+
+  - name: stg_product_events
+    description: >
+      Staging model for product analytics event data. Cleans and casts raw event
+      records from the product tracking system. Each row represents one user action
+      or product event.
+    columns:
+      - name: event_id
+        description: Unique identifier for the event (cast from raw integer to string).
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Foreign key referencing the user who triggered the event.
+        tests:
+          - not_null
+      - name: event_name
+        description: Name of the product event (e.g. page_view, payment_initiated, login).
+        tests:
+          - not_null
+      - name: event_properties
+        description: JSON blob containing additional metadata about the event.
+      - name: event_timestamp
+        description: Timestamp when the event occurred.
+        tests:
+          - not_null

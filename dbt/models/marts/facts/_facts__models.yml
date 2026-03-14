@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fct_payments
+    description: >
+      Payments fact table. Contains one row per payment transaction with all
+      relevant measures and foreign keys to dimension tables. Built from
+      int_payments_enriched. This is the primary grain table for payment analytics.
+    columns:
+      - name: payment_id
+        description: Unique identifier for the payment. Primary key of this fact table.
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Foreign key to dim_users. Identifies the user who made the payment.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_users')
+                field: user_id
+      - name: merchant_id
+        description: Foreign key to dim_merchants. Identifies the merchant who received the payment.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_merchants')
+                field: merchant_id
+      - name: amount
+        description: Payment amount (numeric). Core measure for financial analysis.
+        tests:
+          - not_null
+      - name: currency
+        description: ISO 4217 currency code for the payment (e.g. USD, EUR, AED).
+      - name: payment_status
+        description: >
+          Final status of the payment transaction.
+          Expected values: pending, completed, failed, refunded.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pending', 'completed', 'failed', 'refunded']
+      - name: created_at
+        description: Timestamp when the payment was initiated. Used as the event date for time-series analysis.
+        tests:
+          - not_null

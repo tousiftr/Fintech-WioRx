@@ -1,0 +1,77 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Raw source tables loaded directly from the operational database / ingestion
+      pipeline. These tables are owned by the data engineering team and should not
+      be queried directly by downstream models — use the staging layer instead.
+    schema: raw
+    tables:
+      - name: users
+        description: Raw user/customer account records from the core application database.
+        columns:
+          - name: id
+            description: Primary key for the user record.
+            tests:
+              - unique
+              - not_null
+          - name: email
+            description: Email address of the user (may contain mixed casing).
+          - name: created_at
+            description: Timestamp when the user account was created.
+          - name: updated_at
+            description: Timestamp when the user record was last updated.
+
+      - name: merchants
+        description: Raw merchant records from the core application database.
+        columns:
+          - name: id
+            description: Primary key for the merchant record.
+            tests:
+              - unique
+              - not_null
+          - name: merchant_name
+            description: Display name of the merchant.
+          - name: merchant_category
+            description: Business category of the merchant.
+          - name: created_at
+            description: Timestamp when the merchant was onboarded.
+
+      - name: payments
+        description: Raw payment transaction records from the payments processing system.
+        columns:
+          - name: id
+            description: Primary key for the payment record.
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: Foreign key to the users table.
+          - name: merchant_id
+            description: Foreign key to the merchants table.
+          - name: amount
+            description: Payment amount (raw numeric value).
+          - name: currency
+            description: Currency code of the transaction.
+          - name: payment_status
+            description: Status of the payment transaction.
+          - name: created_at
+            description: Timestamp when the payment was created.
+
+      - name: product_events
+        description: Raw product analytics events captured from the mobile / web application.
+        columns:
+          - name: event_id
+            description: Primary key for the event record.
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: Foreign key to the users table.
+          - name: event_name
+            description: Name of the tracked product event.
+          - name: event_properties
+            description: JSON metadata associated with the event.
+          - name: event_timestamp
+            description: Timestamp when the event was captured.

@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: dim_users
+    description: >
+      User dimension table. Contains one row per registered user with their
+      core identity attributes. Built from stg_customer and exposed to BI tools
+      for user-level slicing and filtering.
+    columns:
+      - name: user_id
+        description: Unique identifier for the user. Primary key of this dimension.
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: Lowercased email address of the user.
+        tests:
+          - not_null
+      - name: created_at
+        description: Timestamp when the user account was first created.
+
+  - name: dim_merchants
+    description: >
+      Merchant dimension table. Contains one row per merchant with their core
+      attributes. Built from stg_merchants and exposed to BI tools for
+      merchant-level slicing and filtering.
+    columns:
+      - name: merchant_id
+        description: Unique identifier for the merchant. Primary key of this dimension.
+        tests:
+          - unique
+          - not_null
+      - name: merchant_name
+        description: Display name of the merchant.
+        tests:
+          - not_null
+      - name: merchant_category
+        description: Business category of the merchant (e.g. retail, food, travel).

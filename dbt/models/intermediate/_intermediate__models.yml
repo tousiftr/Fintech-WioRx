@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: int_payments_enriched
+    description: >
+      Intermediate model that enriches raw payment records with user and merchant
+      details. Joins stg_payments with stg_customer (for user email) and
+      stg_merchants (for merchant name). Materialized as a table for performance.
+    columns:
+      - name: payment_id
+        description: Unique identifier for the payment transaction.
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Identifier of the user who made the payment.
+        tests:
+          - not_null
+      - name: email
+        description: Email address of the user (joined from stg_customer).
+      - name: merchant_id
+        description: Identifier of the merchant who received the payment.
+        tests:
+          - not_null
+      - name: merchant_name
+        description: Display name of the merchant (joined from stg_merchants).
+      - name: amount
+        description: Payment amount as a numeric value.
+        tests:
+          - not_null
+      - name: currency
+        description: ISO 4217 currency code for the payment.
+      - name: payment_status
+        description: Current status of the payment (e.g. pending, completed, failed).
+      - name: created_at
+        description: Timestamp when the payment was initiated.
+
+  - name: int_user_activity
+    description: >
+      Intermediate model capturing user activity through payment transactions.
+      Joins payment records with user and merchant context to provide a
+      comprehensive view of user-level transaction activity.
+    columns:
+      - name: payment_id
+        description: Unique identifier for the payment transaction.
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Identifier of the user who performed the activity.
+        tests:
+          - not_null
+      - name: email
+        description: Email address of the user.
+      - name: merchant_id
+        description: Identifier of the merchant associated with the activity.
+      - name: merchant_name
+        description: Display name of the merchant.
+      - name: amount
+        description: Payment amount associated with the activity.
+      - name: currency
+        description: Currency code of the transaction.
+      - name: payment_status
+        description: Status of the payment associated with this activity.
+      - name: created_at
+        description: Timestamp when the activity occurred.
+
+  - name: int_merchant_metrics
+    description: >
+      Intermediate model for aggregated merchant-level performance metrics.
+      Summarizes payment volumes, transaction counts, and success rates per
+      merchant. (Model under development.)

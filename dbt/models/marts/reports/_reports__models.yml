@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: rpt_daily_payment_volume
+    description: >
+      Daily payment volume report. Aggregates fct_payments to a day-level grain,
+      showing total transaction value and count per calendar day. Intended for
+      executive dashboards and daily finance reporting.
+    columns:
+      - name: payment_date
+        description: Calendar date of the payment transactions (truncated from created_at).
+        tests:
+          - unique
+          - not_null
+      - name: total_payment_amount
+        description: Sum of all payment amounts processed on that day.
+        tests:
+          - not_null
+      - name: total_transactions
+        description: Count of all payment transactions processed on that day.
+        tests:
+          - not_null
