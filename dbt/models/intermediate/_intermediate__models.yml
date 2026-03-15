@@ -16,8 +16,6 @@ models:
         description: Identifier of the user who made the payment.
         tests:
           - not_null
-      - name: email
-        description: Email address of the user (joined from stg_customer).
       - name: merchant_id
         description: Identifier of the merchant who received the payment.
         tests:

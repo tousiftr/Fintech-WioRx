@@ -12,10 +12,6 @@ models:
         tests:
           - unique
           - not_null
-      - name: email
-        description: Lowercased email address of the user.
-        tests:
-          - not_null
       - name: created_at
         description: Timestamp when the user account was first created.
 
