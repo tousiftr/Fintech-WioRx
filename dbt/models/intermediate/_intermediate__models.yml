@@ -48,8 +48,6 @@ models:
         description: Identifier of the user who performed the activity.
         tests:
           - not_null
-      - name: email
-        description: Email address of the user.
       - name: merchant_id
         description: Identifier of the merchant associated with the activity.
       - name: merchant_name
