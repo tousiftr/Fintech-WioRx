@@ -22,7 +22,7 @@ MINIO_ENV = {
 with DAG(
     dag_id='fintech_wiorx',
     description='Generate data, load to Postgres raw, run dbt',
-    schedule='@daily',
+    schedule='0 12 * * *',
     start_date=datetime(2025, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -55,7 +55,7 @@ with DAG(
     dbt_run = DockerOperator(
         task_id='dbt_run',
         image=DBT_IMAGE,
-        command='dbt run',
+        command='dbt run --select intermediate+ marts',
         working_dir='/usr/app',
         network_mode=NETWORK,
         environment={'DBT_ENV': 'dev'},
