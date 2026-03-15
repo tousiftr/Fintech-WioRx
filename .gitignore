@@ -1,18 +1,25 @@
-# Ignore compiled files
-*.class
-*.o
+# Airflow - downloaded example file, auto-generated config and logs
+airflow/docker-compose.yaml
+airflow/logs/
+airflow/config/airflow.cfg
+airflow/.env
 
-# Ignore node modules
-node_modules/
-
-# Ignore environment files
-.env
-
-# Python virtual environment
+# Python
+__pycache__/
+*.pyc
+*.pyo
 .venv/
+venv/
 
-# dbt target (compiled/generated artifacts)
+# dbt
 dbt/target/
-
-# dbt logs
+dbt/dbt_packages/
 dbt/logs/
+
+# Environment
+.env
+\!.env.example
+
+# OS
+.DS_Store
+Thumbs.db

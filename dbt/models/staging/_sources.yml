@@ -11,13 +11,11 @@ sources:
       - name: users
         description: Raw user/customer account records from the core application database.
         columns:
-          - name: id
+          - name: user_id
             description: Primary key for the user record.
             tests:
               - unique
               - not_null
-          - name: email
-            description: Email address of the user (may contain mixed casing).
           - name: created_at
             description: Timestamp when the user account was created.
           - name: updated_at
@@ -26,7 +24,7 @@ sources:
       - name: merchants
         description: Raw merchant records from the core application database.
         columns:
-          - name: id
+          - name: merchant_id
             description: Primary key for the merchant record.
             tests:
               - unique
@@ -41,7 +39,7 @@ sources:
       - name: payments
         description: Raw payment transaction records from the payments processing system.
         columns:
-          - name: id
+          - name: payment_id
             description: Primary key for the payment record.
             tests:
               - unique
