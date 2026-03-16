@@ -39,6 +39,19 @@ jobs:
       - name: Install generator dependencies
         run: pip install -r generator/requirements.txt
 
+      # ── Step 0: Ensure raw schema exists on Neon (idempotent) ─────────────
+      - name: Init raw schema on Neon Postgres
+        run: |
+          python - <<'EOF'
+          import os
+          from sqlalchemy import create_engine, text
+          engine = create_engine(os.environ["DATABASE_URL"])
+          sql = open("scripts/init-raw-schema.sql").read()
+          with engine.begin() as conn:
+              conn.execute(text(sql))
+          print("Raw schema initialised.")
+          EOF
+
       # Unique batch ID for this run — used as S3 partition and loader key
       - name: Set RUN_BATCH
         run: echo "RUN_BATCH=$(date -u +%Y%m%d_%H%M%S)" >> $GITHUB_ENV
