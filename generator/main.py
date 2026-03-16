@@ -34,9 +34,9 @@ def save_and_upload(df, local_path, bucket_key):
 
 def main():
     ensure_bucket_exists()
-    users_df = generate_users(RUN_DATE, 200)
+    users_df = generate_users(RUN_DATE, 300)
     merchants_df = generate_merchants(RUN_DATE, 50)
-    payments_df = generate_payments(RUN_DATE, users_df, merchants_df, 4000)
+    payments_df = generate_payments(RUN_DATE, users_df, merchants_df, 9000)
     events_df = generate_product_events(RUN_DATE, payments_df)
 
     datasets = [
