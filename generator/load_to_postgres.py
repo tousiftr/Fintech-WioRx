@@ -17,10 +17,14 @@ MINIO_ENDPOINT    = os.getenv("MINIO_ENDPOINT",    "http://minio:9000")
 MINIO_ROOT_USER   = os.getenv("MINIO_ROOT_USER",   "minioadmin")
 MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin123")
 MINIO_BUCKET      = os.getenv("MINIO_BUCKET",      "fintech-wiorx-lake")
-DATABASE_URL      = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in environment variables.")
+
+# SQLAlchemy 2.x requires postgresql://, not postgres://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 
 s3 = boto3.client(
     "s3",
