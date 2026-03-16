@@ -20,6 +20,12 @@ s3 = boto3.client(
     aws_secret_access_key=MINIO_ROOT_PASSWORD,
 )
 
+def ensure_bucket_exists():
+    existing = [b["Name"] for b in s3.list_buckets().get("Buckets", [])]
+    if MINIO_BUCKET not in existing:
+        s3.create_bucket(Bucket=MINIO_BUCKET)
+        print(f"Created bucket: {MINIO_BUCKET}")
+
 def save_and_upload(df, local_path, bucket_key):
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     df.to_parquet(local_path, index=False)
@@ -27,6 +33,7 @@ def save_and_upload(df, local_path, bucket_key):
     print(f"Uploaded: s3://{MINIO_BUCKET}/{bucket_key}")
 
 def main():
+    ensure_bucket_exists()
     users_df = generate_users(RUN_DATE, 200)
     merchants_df = generate_merchants(RUN_DATE, 50)
     payments_df = generate_payments(RUN_DATE, users_df, merchants_df, 4000)
