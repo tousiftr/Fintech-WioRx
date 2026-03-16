@@ -1,4 +1,4 @@
-name: Realtime Data Pipeline
+name: Realtime Fintech Pipeline
 
 on:
   schedule:
@@ -9,55 +9,54 @@ jobs:
   pipeline:
     runs-on: ubuntu-latest
 
+    env:
+      # Cloudflare R2
+      MINIO_ENDPOINT:     ${{ secrets.S3_ENDPOINT }}
+      MINIO_ROOT_USER:    ${{ secrets.S3_ACCESS_KEY }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.S3_SECRET_KEY }}
+      MINIO_BUCKET:       ${{ secrets.S3_BUCKET }}
+      # Neon Postgres
+      DATABASE_URL: postgresql://${{ secrets.PG_USER }}:${{ secrets.PG_PASSWORD }}@${{ secrets.PG_HOST }}/${{ secrets.PG_DB }}?sslmode=require
+      PG_HOST:     ${{ secrets.PG_HOST }}
+      PG_DB:       ${{ secrets.PG_DB }}
+      PG_USER:     ${{ secrets.PG_USER }}
+      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+      PG_SCHEMA:   analytics
+      PG_THREADS:  "4"
+      DBT_ENV:     dev
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Write .env files from GitHub Secrets ──────────────────────────────
-      - name: Create root .env
-        run: |
-          cat > .env << ENV
-          AIRFLOW_UID=50000
-          MINIO_ENDPOINT=${{ secrets.S3_ENDPOINT }}
-          MINIO_ROOT_USER=${{ secrets.S3_ACCESS_KEY }}
-          MINIO_ROOT_PASSWORD=${{ secrets.S3_SECRET_KEY }}
-          MINIO_BUCKET=${{ secrets.S3_BUCKET }}
-          ENV
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: generator/requirements.txt
 
-      - name: Create dbt/.env (Neon cloud Postgres)
-        run: |
-          cat > dbt/.env << ENV
-          DBT_ENV=dev
-          PG_HOST=${{ secrets.PG_HOST }}
-          PG_PORT=5432
-          PG_DB=${{ secrets.PG_DB }}
-          PG_SCHEMA=analytics
-          PG_USER=${{ secrets.PG_USER }}
-          PG_PASSWORD=${{ secrets.PG_PASSWORD }}
-          PG_THREADS=4
-          ENV
+      - name: Install generator dependencies
+        run: pip install -r generator/requirements.txt
 
-      # ── Build images ───────────────────────────────────────────────────────
-      - name: Build generator image
-        run: docker compose build generator
+      # Unique batch ID for this run — used as S3 partition and loader key
+      - name: Set RUN_BATCH
+        run: echo "RUN_BATCH=$(date -u +%Y%m%d_%H%M%S)" >> $GITHUB_ENV
 
-      # ── Run pipeline ───────────────────────────────────────────────────────
-      - name: Generate data and upload to R2
-        run: docker compose run --rm generator python main.py
+      # ── Step 1: Generate data → upload to R2 ──────────────────────────────
+      - name: Generate incremental data and upload to R2
+        working-directory: generator
+        run: python main.py
 
-      - name: Load from R2 into Neon Postgres
-        run: |
-          docker compose run --rm \
-            -e DATABASE_URL=postgresql://${{ secrets.PG_USER }}:${{ secrets.PG_PASSWORD }}@${{ secrets.PG_HOST }}/${{ secrets.PG_DB }}?sslmode=require \
-            generator python load_to_postgres.py
+      # ── Step 2: Load from R2 → Neon Postgres ──────────────────────────────
+      - name: Load batch from R2 into Postgres raw tables
+        working-directory: generator
+        run: python load_to_postgres.py
 
-      - name: Build dbt image
-        run: docker compose build dbt
+      # ── Step 3: dbt staging refresh ───────────────────────────────────────
+      - name: Install dbt
+        run: pip install dbt-postgres==1.9.0
 
-      - name: dbt — staging models
-        run: docker compose run --rm dbt dbt run --select staging
-
-      # ── Cleanup ────────────────────────────────────────────────────────────
-      - name: Tear down
-        if: always()
-        run: docker compose down -v
+      - name: dbt staging models
+        working-directory: dbt
+        run: dbt run --select staging --profiles-dir profiles

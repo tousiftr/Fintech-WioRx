@@ -7,13 +7,17 @@ import boto3
 import pandas as pd
 from sqlalchemy import create_engine, text
 
-RUN_DATE = str(date.today())
+from datetime import datetime, timezone
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-MINIO_ROOT_USER = os.getenv("MINIO_ROOT_USER", "minioadmin")
+NOW       = datetime.now(timezone.utc)
+RUN_BATCH = os.getenv("RUN_BATCH", NOW.strftime("%Y%m%d_%H%M%S"))
+RUN_DATE  = RUN_BATCH[:8]
+
+MINIO_ENDPOINT    = os.getenv("MINIO_ENDPOINT",    "http://minio:9000")
+MINIO_ROOT_USER   = os.getenv("MINIO_ROOT_USER",   "minioadmin")
 MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin123")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET", "fintech-wiorx-lake")
-DATABASE_URL = os.getenv("DATABASE_URL")
+MINIO_BUCKET      = os.getenv("MINIO_BUCKET",      "fintech-wiorx-lake")
+DATABASE_URL      = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in environment variables.")
@@ -29,8 +33,8 @@ engine = create_engine(DATABASE_URL)
 
 
 def load_parquet_from_minio(dataset_name: str):
-    key = f"raw/{dataset_name}/date={RUN_DATE}/{dataset_name}.parquet"
-    print(f"Reading from MinIO: s3://{MINIO_BUCKET}/{key}")
+    key = f"raw/{dataset_name}/date={RUN_DATE}/batch={RUN_BATCH}/{dataset_name}.parquet"
+    print(f"Reading from S3: s3://{MINIO_BUCKET}/{key}")
     obj = s3.get_object(Bucket=MINIO_BUCKET, Key=key)
     data = obj["Body"].read()
     df = pd.read_parquet(io.BytesIO(data))
