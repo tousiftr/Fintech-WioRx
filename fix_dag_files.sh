@@ -143,4 +143,49 @@ with DAG(
     )
 EOF
 
+echo "==> Writing pipeline_realtime.py..."
+cat > "$DAGS_DIR/pipeline_realtime.py" << 'EOF'
+# DAG: pipeline_realtime
+# Every 10 minutes:
+#   1. realtime_load  — generates 10-20 new users + 80-150 payments with NOW timestamps,
+#                       inserts directly into Postgres (no MinIO needed)
+#   2. dbt_staging    — refreshes staging views so data is immediately queryable
+#
+# max_active_runs=1 prevents runs overlapping if a cycle takes longer than 10 min.
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.providers.docker.operators.docker import DockerOperator
+from config import GENERATOR_IMAGE, DBT_IMAGE, DATABASE_URL, DBT_ENV, DOCKER_DEFAULTS
+
+with DAG(
+    dag_id="pipeline_realtime",
+    description="Ingest new fintech data directly to Postgres every 10 min",
+    schedule="*/10 * * * *",
+    start_date=datetime(2025, 1, 1),
+    catchup=False,
+    max_active_runs=1,
+    default_args={"owner": "fintech-wiorx", "retries": 1, "retry_delay": timedelta(minutes=2)},
+    tags=["fintech", "realtime"],
+) as dag:
+
+    realtime_load = DockerOperator(
+        task_id="realtime_load",
+        image=GENERATOR_IMAGE,
+        command="python realtime_load.py",
+        environment={"DATABASE_URL": DATABASE_URL},
+        **DOCKER_DEFAULTS,
+    )
+
+    dbt_staging = DockerOperator(
+        task_id="dbt_staging",
+        image=DBT_IMAGE,
+        command="dbt run --select staging",
+        working_dir="/usr/app",
+        environment=DBT_ENV,
+        **DOCKER_DEFAULTS,
+    )
+
+    realtime_load >> dbt_staging
+EOF
+
 echo "==> All DAG files updated successfully."
