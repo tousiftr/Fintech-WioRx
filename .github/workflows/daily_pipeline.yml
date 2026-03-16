@@ -1,0 +1,84 @@
+name: Daily Data Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC every day
+  workflow_dispatch:        # allow manual trigger from GitHub UI
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Write .env files from GitHub Secrets ───────────────────────────────
+      - name: Create root .env
+        run: |
+          cat > .env << ENV
+          AIRFLOW_UID=50000
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=minioadmin123
+          MINIO_BUCKET=fintech-wiorx-lake
+          ENV
+
+      - name: Create dbt/.env (points at local Postgres for CI)
+        run: |
+          cat > dbt/.env << ENV
+          DBT_ENV=dev
+          PG_HOST=postgres
+          PG_PORT=5432
+          PG_DB=fintech
+          PG_SCHEMA=analytics
+          PG_USER=fintech
+          PG_PASSWORD=fintech123
+          PG_THREADS=4
+          ENV
+        # NOTE: In CI we run dbt against the local Postgres container (not Neon).
+        # To use Neon instead, add PG_HOST etc. as GitHub Secrets and replace above.
+
+      # ── 3. Build images ───────────────────────────────────────────────────────
+      - name: Build generator and dbt images
+        run: docker compose build generator dbt
+
+      # ── 4. Start infrastructure ───────────────────────────────────────────────
+      - name: Start Postgres and MinIO
+        run: docker compose up -d postgres minio
+
+      - name: Wait for Postgres to be healthy
+        run: |
+          echo "Waiting for Postgres..."
+          for i in $(seq 1 30); do
+            docker compose exec -T postgres pg_isready -U fintech && echo "Postgres ready" && break
+            echo "  attempt $i/30 — waiting 3s..."
+            sleep 3
+          done
+
+      - name: Create MinIO bucket
+        run: docker compose up mc --wait || true
+        # mc runs, creates bucket, then exits with code 0
+
+      # ── 5. Generate data ──────────────────────────────────────────────────────
+      - name: Generate synthetic data and upload to MinIO
+        run: docker compose run --rm generator python main.py
+
+      # ── 6. Load raw data ──────────────────────────────────────────────────────
+      - name: Load parquet from MinIO into raw Postgres tables
+        run: docker compose run --rm generator python load_to_postgres.py
+
+      # ── 7. dbt transformations ────────────────────────────────────────────────
+      - name: dbt — staging models
+        run: docker compose run --rm dbt dbt run --select staging
+
+      - name: dbt — intermediate models
+        run: docker compose run --rm dbt dbt run --select intermediate
+
+      - name: dbt — mart models
+        run: docker compose run --rm dbt dbt run --select marts
+
+      # ── 8. Tear down ──────────────────────────────────────────────────────────
+      - name: Tear down all containers
+        if: always()
+        run: docker compose down -v

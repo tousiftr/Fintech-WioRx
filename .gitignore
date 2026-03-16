@@ -16,9 +16,11 @@ dbt/target/
 dbt/dbt_packages/
 dbt/logs/
 
-# Environment
+# Environment — never commit real credentials
 .env
+dbt/.env
 \!.env.example
+\!dbt/.env.example
 
 # OS
 .DS_Store

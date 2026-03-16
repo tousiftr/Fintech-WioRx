@@ -3,6 +3,7 @@ x-airflow-common:
   image: apache/airflow:2.10.5
   env_file:
     - .env
+    - dbt/.env                            # exposes PG_* vars to dbt DockerOperator tasks
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -12,12 +13,13 @@ x-airflow-common:
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__WEBSERVER__SECRET_KEY: 'fintech-wiorx-secret'
-    _PIP_ADDITIONAL_REQUIREMENTS: ''
+    _PIP_ADDITIONAL_REQUIREMENTS: 'apache-airflow-providers-docker'  # required for DockerOperator
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/config:/opt/airflow/config
     - ./airflow/plugins:/opt/airflow/plugins
+    - /var/run/docker.sock:/var/run/docker.sock  # required for DockerOperator
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -57,6 +59,7 @@ services:
   generator:
     build:
       context: ./generator
+    image: fintech-wiorx-generator:latest   # explicit name so DockerOperator can find it
     container_name: fintech-wiorx-generator
     depends_on:
       - minio
@@ -79,7 +82,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-airflow-db.sql:/docker-entrypoint-initdb.d/init-airflow-db.sql
+      - ./scripts/init-airflow-db.sql:/docker-entrypoint-initdb.d/01-init-airflow-db.sql
+      - ./scripts/init-raw-schema.sql:/docker-entrypoint-initdb.d/02-init-raw-schema.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "fintech"]
       interval: 10s
@@ -90,6 +94,7 @@ services:
     build:
       context: .
       dockerfile: docker/dbt/Dockerfile
+    image: fintech-wiorx-dbt:latest         # explicit name so DockerOperator can find it
     container_name: fintech-wiorx-dbt
     depends_on:
       - postgres
